@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Airbnb Concierge</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --rausch: #FF385C;
+  --rausch-dk: #E31C5F;
+  --hof: #484848;
+  --foggy: #767676;
+  --white: #FFFFFF;
+  --gray-f7: #F7F7F7;
+  --gray-f0: #F0F0F0;
+  --gray-eb: #EBEBEB;
+  --gray-dd: #DDDDDD;
+  --gray-b0: #B0B0B0;
+  --text: #222222;
+  --bubble-guest: #34C759;
+  --bubble-host: #F7F7F7;
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 28px rgba(0,0,0,0.12);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+body { font-family:'Plus Jakarta Sans',-apple-system,sans-serif; background:#F2F2F7; color:var(--text); height:100vh; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+
+/* ── OUTER SHELL ── */
+.app-shell { display:flex; gap:28px; align-items:flex-start; width:100%; max-width:1160px; padding:2rem; height:100vh; max-height:860px; }
+
+/* ── PHONE FRAME ── */
+.phone-frame {
+  width: 375px;
+  min-width: 375px;
+  height: 100%;
+  max-height: 812px;
+  background: white;
+  border-radius: 44px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06), inset 0 0 0 1px rgba(255,255,255,0.8);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* notch */
+.phone-notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:126px; height:34px; background:#000; border-radius:0 0 20px 20px; z-index:20; }
+
+/* status bar */
+.status-bar { height:44px; flex-shrink:0; display:flex; align-items:flex-end; justify-content:space-between; padding:0 24px 8px; position:relative; z-index:10; }
+.status-time { font-size:15px; font-weight:600; color:var(--text); }
+.status-icons { display:flex; gap:5px; align-items:center; }
+.status-icons svg { width:16px; height:16px; fill:var(--text); }
+
+/* nav bar */
+.chat-nav {
+  height: 52px; flex-shrink:0;
+  display: flex; align-items:center; justify-content:space-between;
+  padding: 0 16px;
+  border-bottom: 0.5px solid var(--gray-eb);
+  background: rgba(255,255,255,0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.nav-back { display:flex; align-items:center; gap:2px; color:var(--rausch); font-size:17px; font-weight:400; cursor:pointer; background:none; border:none; font-family:inherit; }
+.nav-back svg { width:11px; height:19px; fill:none; stroke:var(--rausch); stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+.nav-center { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.nav-avatar-wrap { position:relative; }
+.nav-airbnb-dot { width:36px; height:36px; background:var(--rausch); border-radius:50%; display:flex; align-items:center; justify-content:center; }
+.nav-airbnb-dot svg { width:20px; height:20px; fill:white; }
+.nav-name { font-size:13px; font-weight:600; color:var(--rausch); display:flex; align-items:center; gap:3px; }
+.nav-name svg { width:10px; height:10px; fill:var(--rausch); }
+.nav-video { color:var(--rausch); background:none; border:none; cursor:pointer; }
+.nav-video svg { width:24px; height:24px; fill:var(--rausch); }
+
+/* messages area */
+.messages-area { flex:1; overflow-y:auto; padding:12px 16px 8px; display:flex; flex-direction:column; gap:4px; scroll-behavior:smooth; }
+.messages-area::-webkit-scrollbar { display:none; }
+
+.msg-row { display:flex; align-items:flex-end; gap:8px; max-width:100%; }
+.msg-row.guest { flex-direction:row-reverse; }
+.msg-row.host { flex-direction:row; }
+
+.msg-avatar { width:28px; height:28px; border-radius:50%; background:var(--rausch); display:flex; align-items:center; justify-content:center; flex-shrink:0; align-self:flex-end; }
+.msg-avatar svg { width:16px; height:16px; fill:white; }
+.msg-avatar.hidden { visibility:hidden; }
+
+.bubble {
+  max-width: 265px;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--bubble-host);
+  position: relative;
+}
+.bubble.guest { background:var(--bubble-guest); color:white; border-bottom-right-radius:4px; }
+.bubble.host { background:var(--gray-f7); color:var(--text); border-bottom-left-radius:4px; }
+.bubble.typing { padding:12px 16px; }
+
+/* typing dots */
+.typing-dots { display:flex; gap:4px; align-items:center; }
+.typing-dots span { width:7px; height:7px; border-radius:50%; background:var(--gray-b0); animation:typingBounce 1.2s infinite; }
+.typing-dots span:nth-child(2){animation-delay:0.2s}
+.typing-dots span:nth-child(3){animation-delay:0.4s}
+@keyframes typingBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+.suggested-label {
+  font-size:12px; font-weight:600; color:var(--foggy);
+  margin-bottom:6px; margin-left:36px;
+  display:flex; align-items:center; gap:6px;
+  letter-spacing:0.1px;
+}
+.suggested-label .airbnb-dot {
+  width:16px; height:16px; background:var(--rausch); border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.suggested-label .airbnb-dot svg { width:9px; height:9px; fill:white; }
+
+/* Airbnb-endorsed badge on partner card footer */
+.sci-endorsed {
+  display: flex;
+  align-items: center;
+  padding: 9px 14px 12px;
+  gap: 6px;
+  border-top: 1px solid var(--gray-f7);
+}
+.sci-endorsed-logo {
+  width:14px; height:14px; background:var(--rausch); border-radius:50%;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.sci-endorsed-logo svg { width:8px; height:8px; fill:white; }
+.sci-endorsed-text { font-size:11px; color:var(--foggy); font-weight:500; flex:1; }
+.sci-endorsed-chevron { font-size:13px; color:var(--gray-b0); margin-left:auto; }
+
+.sci-wrap { max-width:290px; }
+
+/* Airbnb-style card: text left, illustrated icon right */
+.service-card-inline {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.05);
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.service-card-inline:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06); }
+
+.sci-dismiss { position:absolute; top:10px; right:10px; width:22px; height:22px; border-radius:50%; background:rgba(0,0,0,0.06); border:none; cursor:pointer; font-size:13px; color:var(--foggy); display:flex; align-items:center; justify-content:center; z-index:2; transition:background 0.15s; font-family:inherit; }
+.sci-dismiss:hover { background:rgba(0,0,0,0.12); }
+
+.sci-inner { display:flex; align-items:center; gap:10px; padding:16px 14px 14px; }
+.sci-text { flex:1; min-width:0; }
+.sci-title { font-size:15px; font-weight:600; color:var(--text); line-height:1.3; margin-bottom:3px; }
+.sci-subtitle { font-size:13px; color:var(--foggy); line-height:1.4; }
+.sci-offer { font-size:12px; color:var(--foggy); margin-top:2px; }
+.sci-icon { width:56px; height:56px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:42px; line-height:1; }
+
+/* Native: full-width dark CTA button */
+.sci-book-btn { display:block; width:calc(100% - 28px); margin:0 14px 14px; padding:13px; background:var(--text); color:white; border:none; border-radius:10px; font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; text-align:center; transition:opacity 0.15s; }
+.sci-book-btn:hover { opacity:0.88; }
+
+/* Partner: subtle footer row with partner name + chevron */
+.sci-partner-row { display:flex; align-items:center; padding:0 14px 12px; gap:6px; }
+.sci-partner-badge { font-size:11px; font-weight:600; letter-spacing:0.3px; color:var(--foggy); }
+.sci-partner-via { font-size:11px; color:var(--gray-b0); }
+.sci-chevron { margin-left:auto; color:var(--gray-b0); font-size:13px; }
+
+/* quick reply chips */
+.quick-replies { padding:8px 16px 4px; display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; flex-shrink:0; }
+.quick-replies::-webkit-scrollbar { display:none; }
+.qr-chip {
+  white-space: nowrap;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--rausch);
+  color: var(--rausch);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  background: white;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.qr-chip:hover { background:var(--rausch); color:white; }
+
+/* input bar */
+.input-bar {
+  padding: 8px 16px 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 0.5px solid var(--gray-eb);
+  background: rgba(255,255,255,0.95);
+  flex-shrink: 0;
+}
+.input-plus { width:30px; height:30px; border-radius:50%; border:1.5px solid var(--gray-dd); background:white; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; color:var(--foggy); font-size:18px; font-weight:300; }
+.input-field { flex:1; background:var(--gray-f7); border:none; border-radius:20px; padding:9px 16px; font-family:inherit; font-size:16px; color:var(--text); outline:none; }
+.input-field::placeholder { color:var(--gray-b0); }
+.input-send { width:30px; height:30px; border-radius:50%; background:var(--rausch); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:opacity 0.15s; }
+.input-send:hover { opacity:0.85; }
+.input-send svg { width:14px; height:14px; fill:white; margin-left:2px; }
+
+/* ── RIGHT PANEL ── */
+.right-panel { flex:1; display:flex; flex-direction:column; gap:16px; height:100%; max-height:812px; overflow-y:auto; }
+.right-panel::-webkit-scrollbar { display:none; }
+
+/* trip card */
+.trip-card {
+  background: white;
+  border-radius: 20px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.trip-card-img { width:100%; height:140px; object-fit:cover; display:block; }
+.trip-card-body { padding:16px; }
+.trip-card-title { font-size:17px; font-weight:700; color:var(--text); margin-bottom:2px; }
+.trip-card-host { font-size:13px; color:var(--foggy); margin-bottom:4px; }
+.trip-card-dates { font-size:13px; color:var(--foggy); margin-bottom:12px; }
+.trip-card-guests { display:flex; align-items:center; gap:-4px; }
+.guest-avatar { width:28px; height:28px; border-radius:50%; border:2px solid white; margin-right:-6px; font-size:16px; background:var(--gray-eb); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; }
+.guest-count { font-size:12px; color:var(--foggy); margin-left:14px; font-weight:500; }
+
+/* timeline */
+.timeline { display:flex; flex-direction:column; gap:0; }
+.timeline-item {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  cursor: pointer;
+}
+.tl-left { display:flex; flex-direction:column; align-items:center; width:52px; flex-shrink:0; padding-top:2px; }
+.tl-date-label { font-size:11px; font-weight:600; color:var(--foggy); text-transform:uppercase; letter-spacing:0.5px; line-height:1; margin-bottom:3px; }
+.tl-date-num { width:38px; height:38px; border-radius:50%; background:var(--rausch); color:white; font-size:16px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.tl-date-num.gray { background:var(--gray-eb); color:var(--hof); }
+.tl-line { flex:1; width:1.5px; background:var(--gray-eb); margin:4px 0; min-height:8px; }
+.tl-card {
+  flex: 1;
+  background: white;
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  transition: box-shadow 0.15s, transform 0.15s;
+  overflow: hidden;
+}
+.tl-card:hover { box-shadow:var(--shadow-lg); transform:translateY(-1px); }
+.tl-card-img { width:44px; height:44px; border-radius:10px; object-fit:cover; flex-shrink:0; font-size:20px; display:flex; align-items:center; justify-content:center; background:var(--gray-f7); overflow:hidden; }
+.tl-card-img img { width:100%; height:100%; object-fit:cover; }
+.tl-card-text { flex:1; min-width:0; }
+.tl-card-name { font-size:14px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tl-card-sub { font-size:12px; color:var(--foggy); margin-top:1px; }
+.tl-card-new { font-size:10px; font-weight:700; color:var(--rausch); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+
+/* panel section label */
+.panel-section-label { font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--foggy); padding:0 2px 8px; }
+
+/* trigger selector */
+.trigger-selector {
+  background: white;
+  border-radius: 20px;
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+  margin-bottom: 0;
+}
+.trigger-selector-label { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--foggy); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.trigger-selector-label::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--rausch); display:inline-block; }
+.trigger-pills { display:flex; flex-direction:column; gap:6px; }
+.trigger-pill {
+  display: flex; align-items: center; gap:10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--gray-eb);
+  background: white;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  text-align: left;
+}
+.trigger-pill:hover { border-color: var(--gray-dd); background:var(--gray-f7); }
+.trigger-pill.active { border-color: var(--rausch); background: #FFF5F7; }
+.trigger-pill-icon { font-size:18px; flex-shrink:0; width:28px; text-align:center; }
+.trigger-pill-text { flex:1; }
+.trigger-pill-name { font-size:13px; font-weight:600; color:var(--text); line-height:1.2; }
+.trigger-pill-desc { font-size:11px; color:var(--foggy); margin-top:1px; line-height:1.3; }
+.trigger-pill-dot { width:8px; height:8px; border-radius:50%; background:var(--gray-dd); flex-shrink:0; transition:background 0.15s; }
+.trigger-pill.active .trigger-pill-dot { background:var(--rausch); }
+
+/* deep-link toast */
+.deeplink-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--text);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  z-index: 999;
+  transition: transform 0.3s cubic-bezier(.4,0,.2,1), opacity 0.3s;
+  opacity: 0;
+  white-space: nowrap;
+}
+.deeplink-toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+/* contextual follow-up chips */
+.followup-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; padding-left:36px; }
+.followup-chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--rausch);
+  color: var(--rausch);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  background: white;
+  cursor: pointer;
+  transition: all 0.15s;
+  animation: fadeUp 0.25s ease forwards;
+  opacity: 0;
+}
+.followup-chip:hover { background:var(--rausch); color:white; }
+
+/* animate in */
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.animate-in { animation:fadeUp 0.3s ease forwards; }
+
+@media(max-width:900px) {
+  .right-panel { display:none; }
+  .app-shell { justify-content:center; padding:0; }
+  .phone-frame { border-radius:0; max-height:100vh; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── PHONE ── -->
+  <div class="phone-frame">
+    <div class="phone-notch"></div>
+
+    <!-- status bar -->
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <svg viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1" opacity="0.3"/></svg>
+        <svg viewBox="0 0 16 12"><path d="M8 2.4C5.6 2.4 3.5 3.4 2 5L0 3C2.1 1.1 4.9 0 8 0s5.9 1.1 8 3l-2 2C12.5 3.4 10.4 2.4 8 2.4z"/><path d="M8 6c-1.5 0-2.8.6-3.8 1.5L2.5 6C3.9 4.8 5.9 4 8 4s4.1.8 5.5 2l-1.7 1.5C10.8 6.6 9.5 6 8 6z"/><circle cx="8" cy="10" r="2"/></svg>
+        <svg viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" stroke-opacity="0.35" fill="none"/><rect x="2" y="2" width="16" height="8" rx="2" fill="currentColor"/><path d="M23 4v4a2 2 0 000-4z" fill="currentColor" opacity="0.4"/></svg>
+      </div>
+    </div>
+
+    <!-- chat nav -->
+    <div class="chat-nav">
+      <button class="nav-back">
+        <svg viewBox="0 0 11 19"><path d="M9.5 1L1 9.5L9.5 18"/></svg>
+      </button>
+      <div class="nav-center">
+        <div class="nav-airbnb-dot">
+          <svg viewBox="0 0 32 32"><path d="M16 1C11.5 1 7.8 5.2 7.8 10.3c0 3.4 1.9 7.4 5.7 12.1C15 24.1 15.5 24.7 16 25.3c.5-.6 1-1.2 2.5-2.9 3.8-4.7 5.7-8.7 5.7-12.1C24.2 5.2 20.5 1 16 1zm0 12.5c-1.8 0-3.3-1.5-3.3-3.3S14.2 6.9 16 6.9s3.3 1.5 3.3 3.3-1.5 3.3-3.3 3.3z"/><path d="M27.1 20.8c-.9-1.9-2.5-3-4.3-3-.4 0-.8.1-1.3.3l-.1.1c-.4.2-.8.5-1.3.8-.7.5-1.5 1-2.1 1.4-.3.2-.6.3-2 .3s-1.7-.1-2-.3c-.6-.4-1.4-.9-2.1-1.4-.5-.4-.9-.6-1.3-.8l-.1-.1c-.5-.2-.9-.3-1.3-.3-1.8 0-3.4 1.1-4.3 3-1 2.1-.5 4.4 1.3 5.9 1 .8 4.8 3.3 9.8 3.3s8.8-2.5 9.8-3.3c1.8-1.5 2.3-3.8 1.3-5.9z"/></svg>
+        </div>
+        <div class="nav-name">Airbnb <svg viewBox="0 0 10 10"><path d="M2 3l3 3 3-3"/></svg></div>
+      </div>
+      <button class="nav-video">
+        <svg viewBox="0 0 24 24"><path d="M15 10l4.553-2.869A1 1 0 0121 8v8a1 1 0 01-1.447.869L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <!-- messages -->
+    <div class="messages-area" id="messages-area"></div>
+
+    <!-- quick replies -->
+    <div class="quick-replies" id="quick-replies">
+      <button class="qr-chip" onclick="sendQuick('Find me a restaurant nearby')">🍽 Restaurants</button>
+      <button class="qr-chip" onclick="sendQuick('I need groceries delivered')">🛒 Groceries</button>
+      <button class="qr-chip" onclick="sendQuick('Book me a massage or spa')">💆 Spa & Wellness</button>
+      <button class="qr-chip" onclick="sendQuick('I want a private chef for dinner')">👨‍🍳 Private Chef</button>
+      <button class="qr-chip" onclick="sendQuick('I need a driver or car service')">🚗 Transport</button>
+      <button class="qr-chip" onclick="sendQuick('What experiences are available nearby?')">🎭 Experiences</button>
+    </div>
+
+    <!-- input -->
+    <div class="input-bar">
+      <div class="input-plus">+</div>
+      <input class="input-field" id="msg-input" placeholder="RCS" autocomplete="off"/>
+      <button class="input-send" onclick="sendMessage()" id="send-btn">
+        <svg viewBox="0 0 24 24"><path d="M2 12L22 2 12 22 10 13 2 12z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── RIGHT PANEL ── -->
+  <div class="right-panel">
+
+    <!-- trigger selector -->
+    <div>
+      <div class="panel-section-label">Trigger scenario</div>
+      <div class="trigger-selector">
+        <div class="trigger-selector-label">Guest touchpoint</div>
+        <div class="trigger-pills">
+          <button class="trigger-pill active" onclick="setTrigger('checkin', this)">
+            <span class="trigger-pill-icon">🏠</span>
+            <div class="trigger-pill-text">
+              <div class="trigger-pill-name">Check-in</div>
+              <div class="trigger-pill-desc">Guest just checked in to their stay</div>
+            </div>
+            <div class="trigger-pill-dot"></div>
+          </button>
+          <button class="trigger-pill" onclick="setTrigger('booked', this)">
+            <span class="trigger-pill-icon">🎉</span>
+            <div class="trigger-pill-text">
+              <div class="trigger-pill-name">Recently booked</div>
+              <div class="trigger-pill-desc">Trip confirmed, travel is upcoming</div>
+            </div>
+            <div class="trigger-pill-dot"></div>
+          </button>
+          <button class="trigger-pill" onclick="setTrigger('search_abandon', this)">
+            <span class="trigger-pill-icon">🔍</span>
+            <div class="trigger-pill-text">
+              <div class="trigger-pill-name">Search abandonment</div>
+              <div class="trigger-pill-desc">Searched for unavailable service</div>
+            </div>
+            <div class="trigger-pill-dot"></div>
+          </button>
+          <button class="trigger-pill" onclick="setTrigger('stay_abandon', this)">
+            <span class="trigger-pill-icon">😔</span>
+            <div class="trigger-pill-text">
+              <div class="trigger-pill-name">Stay abandonment</div>
+              <div class="trigger-pill-desc">Started booking but didn't complete</div>
+            </div>
+            <div class="trigger-pill-dot"></div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- trip card -->
+    <div>
+      <div class="panel-section-label">Your trip</div>
+      <div class="trip-card">
+        <img class="trip-card-img" src="https://images.unsplash.com/photo-1555993539-1732b0258235?w=600&h=280&fit=crop&crop=entropy&q=80" alt="Property"/>
+        <div class="trip-card-body">
+          <div class="trip-card-title" id="trip-title">Home in New York City</div>
+          <div class="trip-card-host">Hosted by Marcus</div>
+          <div class="trip-card-dates">Jun 23 – Jul 3 · 10 nights</div>
+          <div class="trip-card-guests">
+            <div class="guest-avatar">😎</div>
+            <div class="guest-avatar">🧑‍🦱</div>
+            <div class="guest-avatar">🕶️</div>
+            <span class="guest-count">+2</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- timeline -->
+    <div>
+      <div class="panel-section-label">Timeline</div>
+      <div class="timeline" id="timeline">
+
+        <div class="timeline-item">
+          <div class="tl-left">
+            <div class="tl-date-label">Tue</div>
+            <div class="tl-date-num">23</div>
+            <div class="tl-line"></div>
+          </div>
+          <div class="tl-card" style="cursor:default">
+            <div class="tl-card-img">🚪</div>
+            <div class="tl-card-text">
+              <div class="tl-card-name">Check in</div>
+              <div class="tl-card-sub">After 3:00 PM</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="timeline-item">
+          <div class="tl-left">
+            <div class="tl-date-label">Fri</div>
+            <div class="tl-date-num gray">3</div>
+            <div class="tl-line" style="visibility:hidden"></div>
+          </div>
+          <div class="tl-card" style="cursor:default">
+            <div class="tl-card-img">🏠</div>
+            <div class="tl-card-text">
+              <div class="tl-card-name">Check out</div>
+              <div class="tl-card-sub">Before 11:00 AM</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── PARTNER CATALOG ──
+// native:true  = Airbnb-owned → shows dark "Get started" button
+// native:false = partner service → entire card taps out to deep-link
+const PARTNERS = [
+  // ── NATIVE AIRBNB SERVICES ──
+  { id:'airbnb_chef',  cat:'Private Chef',    name:'Airbnb',          title:'Book a private chef',             subtitle:'In-home dining experience for your group',  offer:'From $95 per person',   icon:'👨‍🍳', native:true,  url:'https://www.airbnb.com/s/experiences',          tags:['chef','cook','dinner','private','airbnb','luxury','dining','food'] },
+  { id:'airbnb_spa',   cat:'Spa & Wellness',  name:'Airbnb',          title:'In-home massage',                 subtitle:'A licensed therapist comes to you',          offer:'From $120 per session', icon:'💆',      native:true,  url:'https://www.airbnb.com/s/experiences/wellness', tags:['massage','spa','wellness','relax','in-home','airbnb'] },
+  { id:'airbnb_exp',   cat:'Experiences',     name:'Airbnb',          title:'Book a local experience',         subtitle:'Unique activities hosted by locals',         offer:'From $25 per person',   icon:'🎭',      native:true,  url:'https://www.airbnb.com/s/experiences',          tags:['experience','activity','tour','local','airbnb','fun','things to do'] },
+  { id:'cooking_class',cat:'Experiences',     name:'Airbnb',          title:'Cooking class with a local chef', subtitle:'Learn to cook a signature regional dish',    offer:'From $45 per person',   icon:'🍝',      native:true,  url:'https://www.airbnb.com/s/experiences/cooking',  tags:['cooking','class','food','experience','chef','learn','kitchen'] },
+  { id:'airbnb_tour',  cat:'Experiences',     name:'Airbnb',          title:'Explore with a local guide',      subtitle:'Hidden spots and insider stories',           offer:'From $20 per person',   icon:'🗺️',     native:true,  url:'https://www.airbnb.com/s/experiences',          tags:['walking tour','guide','explore','local','sightseeing','neighborhood'] },
+
+  // ── PARTNER: Food delivery ──
+  { id:'doordash',     cat:'Food Delivery',   name:'DoorDash',        title:'Order food delivery',             subtitle:'Get $0 delivery on your first order',       offer:null,                    icon:'🍔',      native:false, url:'https://www.doordash.com',              tags:['food','delivery','restaurant','eat','hungry','dinner','lunch','order'] },
+  { id:'ubereats',     cat:'Food Delivery',   name:'Uber Eats',       title:'Food at your door',               subtitle:'Thousands of restaurants nearby',           offer:null,                    icon:'🛵',      native:false, url:'https://www.ubereats.com',              tags:['food','delivery','restaurant','eat','hungry','quick'] },
+  { id:'seamless',     cat:'Food Delivery',   name:'Seamless',        title:'Order from local restaurants',    subtitle:'NYC favorites, fast delivery',               offer:null,                    icon:'🥡',      native:false, url:'https://www.seamless.com',              tags:['food','delivery','nyc','local','restaurant'] },
+
+  // ── PARTNER: Groceries ──
+  { id:'instacart',    cat:'Groceries',       name:'Instacart',       title:'Order groceries',                 subtitle:'Get $10 off orders of $50+',                offer:'$10 off $50+',          icon:'🛒',      native:false, url:'https://www.instacart.com',             tags:['grocery','groceries','shopping','food','breakfast','essentials','market','supermarket'] },
+  { id:'freshdirect',  cat:'Groceries',       name:'FreshDirect',     title:'Fresh groceries delivered',       subtitle:'NYC produce, meat, dairy & more',           offer:null,                    icon:'🥦',      native:false, url:'https://www.freshdirect.com',           tags:['grocery','groceries','fresh','produce','market','shopping','nyc'] },
+  { id:'getir',        cat:'Groceries',       name:'Getir',           title:'Groceries in 10 minutes',         subtitle:'Ultra-fast delivery to your door',          offer:null,                    icon:'⚡',      native:false, url:'https://www.getir.com',                 tags:['grocery','groceries','fast','essentials','quick','snacks'] },
+
+  // ── PARTNER: Spa & wellness ──
+  { id:'zeel',         cat:'Spa & Wellness',  name:'Zeel',            title:'In-home massage',                 subtitle:'Professional therapist arrives in 1 hour',  offer:'From $139',             icon:'🧖',      native:false, url:'https://www.zeel.com',                  tags:['massage','spa','wellness','relax','therapist','swedish','deep tissue'] },
+  { id:'soothe',       cat:'Spa & Wellness',  name:'Soothe',          title:'On-demand massage',               subtitle:'Book a massage at the property',            offer:'From $119',             icon:'🛁',      native:false, url:'https://www.soothe.com',                tags:['massage','spa','wellness','relax','on demand'] },
+  { id:'classpass',    cat:'Fitness',         name:'ClassPass',       title:'Fitness classes nearby',          subtitle:'Yoga, pilates, cycling & more',             offer:null,                    icon:'🧘',      native:false, url:'https://www.classpass.com',             tags:['yoga','fitness','gym','wellness','class','workout','pilates','cycling'] },
+
+  // ── PARTNER: Private chef ──
+  { id:'takachef',     cat:'Private Chef',    name:'Take a Chef',     title:'Personal chef at home',           subtitle:'Restaurant quality, zero effort',           offer:'From $80 per person',   icon:'🍳',      native:false, url:'https://www.takeachef.com',             tags:['chef','cook','dinner','private','luxury','dining','pasta','food'] },
+  { id:'yhangry',      cat:'Private Chef',    name:'Yhangry',         title:'Top chef, your kitchen',          subtitle:'Customised menu for your group',            offer:'From $60 per person',   icon:'⭐',      native:false, url:'https://www.yhangry.com',               tags:['chef','cook','dinner','private','luxury','dining','customised'] },
+
+  // ── PARTNER: Transport ──
+  { id:'uber',         cat:'Transport',       name:'Uber',            title:'Get a ride',                      subtitle:'Rides arrive in minutes',                   offer:null,                    icon:'🚗',      native:false, url:'https://www.uber.com',                  tags:['car','ride','taxi','transport','airport','driver','pickup'] },
+  { id:'lyft',         cat:'Transport',       name:'Lyft',            title:'Book a Lyft',                     subtitle:'Reliable rides at great prices',            offer:null,                    icon:'🩷',      native:false, url:'https://www.lyft.com',                  tags:['car','ride','taxi','transport','driver'] },
+  { id:'blacklane',    cat:'Transport',       name:'Blacklane',       title:'Book a private car service',      subtitle:'Get to your Airbnb in comfort',             offer:null,                    icon:'🚘',      native:false, url:'https://www.blacklane.com',             tags:['luxury','car','chauffeur','driver','transport','airport','premium','private car'] },
+  { id:'citibike',     cat:'Transport',       name:'Citi Bike',       title:'Explore the city by bike',        subtitle:'NYC bike share, unlimited 30-min rides',    offer:null,                    icon:'🚲',      native:false, url:'https://www.citibikenyc.com',           tags:['bike','cycle','transport','outdoor','explore','nyc'] },
+
+  // ── PARTNER: Luggage storage ──
+  { id:'luggagehero',  cat:'Luggage Storage', name:'LuggageHero',     title:'Store your bags',                 subtitle:'Start exploring before check-in',           offer:'Get 15% off',           icon:'🧳',      native:false, url:'https://www.luggagehero.com',           tags:['luggage','bags','storage','checkin','checkout','before check-in','early arrival','suitcase'] },
+  { id:'stasher',      cat:'Luggage Storage', name:'Stasher',         title:'Bag storage nearby',              subtitle:'Explore hands-free for the day',            offer:null,                    icon:'🎒',      native:false, url:'https://www.stasher.com',               tags:['luggage','bags','storage','checkin','checkout','early','hands free'] },
+
+  // ── PARTNER: Baby & family gear ──
+  { id:'babierge',     cat:'Baby Gear',       name:'Babierge',        title:'Baby gear rental',                subtitle:'Cribs, strollers & car seats delivered',    offer:null,                    icon:'👶',      native:false, url:'https://www.babierge.com',              tags:['baby','family','kids','gear','stroller','crib','rental','infant','toddler'] },
+  { id:'babyquip',     cat:'Baby Gear',       name:'BabyQuip',        title:'Rent baby equipment',             subtitle:'Everything for little travelers',           offer:null,                    icon:'🍼',      native:false, url:'https://www.babyquip.com',              tags:['baby','family','kids','gear','stroller','crib','rental','toddler'] },
+
+  // ── PARTNER: Outdoor & adventure ──
+  { id:'kayak_co',     cat:'Outdoor',         name:'Kayak Rental',    title:'Rent a kayak',                    subtitle:'Explore the waterways nearby',              offer:null,                    icon:'🚣',      native:false, url:'https://www.getyourguide.com/s/?q=kayak+rental', tags:['kayak','water','outdoor','adventure','canoe','paddle','lake','river','rentals'] },
+  { id:'spinlister',   cat:'Outdoor',         name:'Spinlister',      title:'Rent bikes, surfboards & skis',   subtitle:'Peer-to-peer gear rental nearby',           offer:null,                    icon:'🏄',      native:false, url:'https://www.spinlister.com',            tags:['bike','surf','ski','outdoor','rental','board','adventure','snowboard'] },
+  { id:'outdoorsy',    cat:'Outdoor',         name:'Outdoorsy',       title:'Rent an RV or camper',            subtitle:'Take a road trip from here',                offer:null,                    icon:'🏕️',     native:false, url:'https://www.outdoorsy.com',             tags:['rv','camper','camping','road trip','outdoor','nature','van'] },
+
+  // ── PARTNER: Home services ──
+  { id:'handy',        cat:'Home Services',   name:'Handy',           title:'Book a home cleaning',            subtitle:'Professional cleaners on demand',           offer:'From $99',              icon:'🧹',      native:false, url:'https://www.handy.com',                 tags:['clean','cleaning','maid','home','housekeeping'] },
+  { id:'laundry',      cat:'Home Services',   name:'Rinse',           title:'Laundry pickup & delivery',       subtitle:'Fresh clothes back the same day',           offer:null,                    icon:'👕',      native:false, url:'https://www.rinse.com',                 tags:['laundry','clean','clothes','wash','dry cleaning'] },
+
+  // ── PARTNER: Flowers & gifts ──
+  { id:'bloomsy',      cat:'Flowers & Gifts', name:'BloomsyBox',      title:'Send fresh flowers',              subtitle:'Same-day delivery available',               offer:null,                    icon:'💐',      native:false, url:'https://www.bloomsybox.com',            tags:['flowers','gift','romantic','anniversary','birthday','celebrate'] },
+
+  // ── PARTNER: Experiences ──
+  { id:'viator',       cat:'Experiences',     name:'Viator',          title:'Book a tour or experience',       subtitle:'Thousands of local activities',             offer:null,                    icon:'🎫',      native:false, url:'https://www.viator.com',                tags:['tour','experience','activity','sightseeing','explore','museum'] },
+  { id:'getyourguide', cat:'Experiences',     name:'GetYourGuide',    title:'Skip-the-line tickets',           subtitle:'Museums, tours & top attractions',          offer:null,                    icon:'🏛',      native:false, url:'https://www.getyourguide.com',          tags:['tour','museum','experience','skip line','guided','tickets'] },
+  { id:'sailing',      cat:'Experiences',     name:'Sailaway',        title:'Private sunset sail',             subtitle:'Charter a boat for your whole group',       offer:'From $200',             icon:'⛵',      native:false, url:'https://www.airbnb.com/s/experiences',  tags:['boat','sail','water','sunset','experience','romantic','charter','cruise'] },
+];
+
+// ── TRIP CONTEXT ──
+const TRIP = { city:'New York City', guest:'Brett', property:'Home in New York City', host:'Marcus', checkin:'Jun 23', checkout:'Jul 3' };
+
+// ── TRIGGER MESSAGES ──
+function getTriggerMessages() {
+  return {
+    checkin: {
+      label: 'Check-in',
+      msg: 'Hey ' + TRIP.guest + ', welcome to ' + TRIP.property + '! 🗽 You\'re all checked in — the keys are on the counter and the WiFi password is on the fridge. I\'m your Airbnb concierge, on call day and night. Need a restaurant rec, groceries delivered, a massage, or anything else? Just ask.',
+      chips: ['🍽 Find me a restaurant', '🛒 Grocery delivery', '💆 Book a massage', '👨‍🍳 Private chef tonight']
+    },
+    booked: {
+      label: 'Recently booked',
+      msg: 'Hi ' + TRIP.guest + '! Exciting — your trip to ' + TRIP.city + ' is confirmed for ' + TRIP.checkin + '. 🎉 I\'m your Airbnb concierge and I\'m here to help you plan ahead. Want me to arrange a private chef, book experiences, or sort transport from the airport?',
+      chips: ['🚗 Airport pickup', '🎭 Book experiences', '👨‍🍳 Private chef dinner', '📋 Plan my itinerary']
+    },
+    search_abandon: {
+      label: 'Search abandonment',
+      msg: 'Hey ' + TRIP.guest + ' — looks like you were searching for something during your ' + TRIP.city + ' stay. 👀 I couldn\'t find exactly what you were looking for, but I can connect you with our partner services. What did you need?',
+      chips: ['🍽 Restaurants nearby', '💆 Spa & wellness', '🚗 Car service', '🛒 Grocery delivery']
+    },
+    stay_abandon: {
+      label: 'Stay abandonment',
+      msg: 'Hi ' + TRIP.guest + ' — we noticed you started planning something for your ' + TRIP.city + ' stay but didn\'t finish. 😊 No worries! I\'m your Airbnb concierge — can I help you pick up where you left off or find something new?',
+      chips: ['🍽 Food & dining', '💆 Wellness & spa', '🎭 Experiences', '👨‍🍳 Private chef']
+    }
+  };
+}
+
+// ── STATE ──
+let messages = [];
+let timelineItems = [];
+let isTyping = false;
+let conversationHistory = [];
+let currentTrigger = 'checkin';
+
+// ── TRIGGER SWITCH ──
+function setTrigger(type, el) {
+  if (currentTrigger === type) return;
+  currentTrigger = type;
+  document.querySelectorAll('.trigger-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+
+  // Reset chat
+  conversationHistory = [];
+  timelineItems = [];
+  const area = document.getElementById('messages-area');
+  area.innerHTML = '';
+  // Reset timeline (keep only checkin/checkout)
+  const tl = document.getElementById('timeline');
+  const fixed = Array.from(tl.querySelectorAll('.timeline-item')).slice(0,2);
+  tl.innerHTML = '';
+  fixed.forEach(f => tl.appendChild(f));
+
+  // Fire new welcome message
+  setTimeout(() => fireWelcome(), 400);
+}
+
+function fireWelcome() {
+  const triggers = getTriggerMessages();
+  const t = triggers[currentTrigger];
+  addHostMessage(t.msg);
+  // Show contextual quick chips
+  const qr = document.getElementById('quick-replies');
+  qr.innerHTML = t.chips.map(c => {
+    const safe = c.replace(/'/g, '');
+    return '<button class="qr-chip" onclick="sendQuick(\'' + safe + '\')">' + c + '</button>';
+  }).join('');
+}
+
+// ── BOOT ──
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('msg-input').addEventListener('keydown', e => { if(e.key==='Enter') sendMessage(); });
+  setTimeout(() => fireWelcome(), 600);
+});
+
+// ── MESSAGES ──
+function scrollToBottom() {
+  const a = document.getElementById('messages-area');
+  setTimeout(() => a.scrollTop = a.scrollHeight, 50);
+}
+
+function addMessage(content, type='host', isCard=false) {
+  const area = document.getElementById('messages-area');
+  const row = document.createElement('div');
+  row.className = `msg-row ${type} animate-in`;
+
+  let avatarHTML = '';
+  if (type === 'host') {
+    avatarHTML = `<div class="msg-avatar"><svg viewBox="0 0 32 32"><path d="M16 1C11.5 1 7.8 5.2 7.8 10.3c0 3.4 1.9 7.4 5.7 12.1C15 24.1 15.5 24.7 16 25.3c.5-.6 1-1.2 2.5-2.9 3.8-4.7 5.7-8.7 5.7-12.1C24.2 5.2 20.5 1 16 1zm0 12.5c-1.8 0-3.3-1.5-3.3-3.3S14.2 6.9 16 6.9s3.3 1.5 3.3 3.3-1.5 3.3-3.3 3.3z"/><path d="M27.1 20.8c-.9-1.9-2.5-3-4.3-3-.4 0-.8.1-1.3.3l-.1.1c-.4.2-.8.5-1.3.8-.7.5-1.5 1-2.1 1.4-.3.2-.6.3-2 .3s-1.7-.1-2-.3c-.6-.4-1.4-.9-2.1-1.4-.5-.4-.9-.6-1.3-.8l-.1-.1c-.5-.2-.9-.3-1.3-.3-1.8 0-3.4 1.1-4.3 3-1 2.1-.5 4.4 1.3 5.9 1 .8 4.8 3.3 9.8 3.3s8.8-2.5 9.8-3.3c1.8-1.5 2.3-3.8 1.3-5.9z"/></svg></div>`;
+  } else {
+    avatarHTML = `<div class="msg-avatar hidden"></div>`;
+  }
+
+  if (isCard) {
+    row.innerHTML = `${type==='host' ? avatarHTML : ''}<div>${content}</div>${type==='guest' ? avatarHTML : ''}`;
+  } else {
+    row.innerHTML = `${type==='host' ? avatarHTML : ''}<div class="bubble ${type}">${content}</div>${type==='guest' ? avatarHTML : ''}`;
+  }
+
+  area.appendChild(row);
+  scrollToBottom();
+}
+
+function addHostMessage(text) {
+  addMessage(text, 'host');
+  conversationHistory.push({ role:'assistant', content:text });
+}
+
+function showTyping() {
+  if (isTyping) return;
+  isTyping = true;
+  const area = document.getElementById('messages-area');
+  const row = document.createElement('div');
+  row.className = 'msg-row host animate-in';
+  row.id = 'typing-row';
+  row.innerHTML = `<div class="msg-avatar"><svg viewBox="0 0 32 32"><path d="M16 1C11.5 1 7.8 5.2 7.8 10.3c0 3.4 1.9 7.4 5.7 12.1C15 24.1 15.5 24.7 16 25.3c.5-.6 1-1.2 2.5-2.9 3.8-4.7 5.7-8.7 5.7-12.1C24.2 5.2 20.5 1 16 1zm0 12.5c-1.8 0-3.3-1.5-3.3-3.3S14.2 6.9 16 6.9s3.3 1.5 3.3 3.3-1.5 3.3-3.3 3.3z"/><path d="M27.1 20.8c-.9-1.9-2.5-3-4.3-3-.4 0-.8.1-1.3.3l-.1.1c-.4.2-.8.5-1.3.8-.7.5-1.5 1-2.1 1.4-.3.2-.6.3-2 .3s-1.7-.1-2-.3c-.6-.4-1.4-.9-2.1-1.4-.5-.4-.9-.6-1.3-.8l-.1-.1c-.5-.2-.9-.3-1.3-.3-1.8 0-3.4 1.1-4.3 3-1 2.1-.5 4.4 1.3 5.9 1 .8 4.8 3.3 9.8 3.3s8.8-2.5 9.8-3.3c1.8-1.5 2.3-3.8 1.3-5.9z"/></svg></div><div class="bubble host typing"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  area.appendChild(row);
+  scrollToBottom();
+}
+
+function hideTyping() {
+  const row = document.getElementById('typing-row');
+  if (row) row.remove();
+  isTyping = false;
+}
+
+// ── SEND ──
+async function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const text = input.value.trim();
+  if (!text || isTyping) return;
+  input.value = '';
+  addMessage(text, 'guest');
+  conversationHistory.push({ role:'user', content: text });
+  await getResponse(text);
+}
+
+function sendQuick(text) {
+  document.getElementById('msg-input').value = text;
+  sendMessage();
+}
+
+// ── AI ──
+async function getResponse(userText) {
+  showTyping();
+
+  const catalog = PARTNERS.map(p => p.id+'|'+p.cat+'|'+p.name+'|'+p.title+'|'+p.subtitle+'|'+(p.tags||[]).join(',')).join('\n');
+
+  const systemPrompt = [
+    'You are the Airbnb Concierge — a trusted personal assistant in Airbnb Messages. You speak on behalf of Airbnb, not as a directory or search engine.',
+    '',
+    'Guest: ' + TRIP.guest,
+    'Property: ' + TRIP.property + ' in ' + TRIP.city,
+    'Host: ' + TRIP.host,
+    'Dates: ' + TRIP.checkin + ' – ' + TRIP.checkout,
+    '',
+    'Airbnb has built a curated, hand-picked network of the best service providers in each city — vetted, trusted, and endorsed by Airbnb. These are not generic search results. When you recommend a service, speak as a confident concierge who personally knows and endorses these partners.',
+    '',
+    'Available services (id|category|partner name|title|subtitle|tags):',
+    catalog,
+    '',
+    'Return ONLY valid JSON:',
+    '{',
+    '  "message": "1-3 sentences. Speak with warmth and authority. Use language like \'We\'ve partnered with\', \'One of our hand-picked favourites\', \'Airbnb recommends\', \'We only work with the best in the city\'. Never say \'you could try\'or \'there are several options\'. Be direct and make a confident recommendation.",',
+    '  "partners": ["id1", "id2"],',
+    '  "timelineLabel": "Short label e.g. Tonight · Dinner or null",',
+    '  "followups": ["chip 1 max 5 words", "chip 2 max 5 words"]',
+    '}',
+    '',
+    'Rules:',
+    '- Surface partner cards whenever the request is serviceable — food, transport, spa, chef, groceries, experiences, cleaning, luggage, baby gear, outdoor rentals',
+    '- Max 2 partners per response — curated, not exhaustive',
+    '- For native Airbnb services (airbnb_chef, airbnb_spa, airbnb_exp, cooking_class, airbnb_tour) emphasise they come directly from Airbnb',
+    '- For partner services (everything else) frame Airbnb as having personally vetted and endorsed them',
+    '- followups: 2 natural next-step chips, empty [] if not relevant'
+  ].join('\n');
+
+    try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 600,
+        system: systemPrompt,
+        messages: conversationHistory
+      })
+    });
+
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const raw = data.content.map(b => b.text||'').join('').trim();
+    const clean = raw.replace(/^```json\s*/,'').replace(/```\s*$/,'').trim();
+    const parsed = JSON.parse(clean);
+
+    hideTyping();
+
+    // Show text response
+    addHostMessage(parsed.message);
+
+    // Show partner cards inline
+    if (parsed.partners && parsed.partners.length) {
+      const matchedPartners = parsed.partners.map(id => PARTNERS.find(p => p.id === id)).filter(Boolean);
+      if (matchedPartners.length) {
+        setTimeout(() => {
+          const cardsHTML = matchedPartners.map(p => buildServiceCard(p)).join('');
+          addMessage(`<div style="display:flex;flex-direction:column;gap:8px">${cardsHTML}</div>`, 'host', true);
+          // Add to timeline
+          matchedPartners.forEach(p => addToTimeline(p, parsed.timelineLabel));
+        }, 300);
+      }
+    }
+
+    // Show contextual follow-up chips
+    if (parsed.followups && parsed.followups.length) {
+      setTimeout(() => {
+        const area = document.getElementById('messages-area');
+        const chipRow = document.createElement('div');
+        chipRow.className = 'followup-chips';
+        parsed.followups.forEach((chip, i) => {
+          const btn = document.createElement('button');
+          btn.className = 'followup-chip';
+          btn.style.animationDelay = (i * 0.08) + 's';
+          btn.textContent = chip;
+          btn.onclick = () => { chipRow.remove(); sendQuick(chip); };
+          chipRow.appendChild(btn);
+        });
+        area.appendChild(chipRow);
+        scrollToBottom();
+      }, 600);
+    }
+
+  } catch(e) {
+    hideTyping();
+    addHostMessage("Sorry, I'm having a moment — try again in a sec! 😅");
+    console.error(e);
+  }
+}
+
+// ── SERVICE CARD ──
+const AIRBNB_SVG_SM = '<svg viewBox="0 0 32 32"><path d="M16 1C11.5 1 7.8 5.2 7.8 10.3c0 3.4 1.9 7.4 5.7 12.1C15 24.1 15.5 24.7 16 25.3c.5-.6 1-1.2 2.5-2.9 3.8-4.7 5.7-8.7 5.7-12.1C24.2 5.2 20.5 1 16 1z"/></svg>';
+
+function buildServiceCard(partner) {
+  const dismissBtn = partner.native
+    ? '<button class="sci-dismiss" onclick="event.stopPropagation();this.closest(\'.sci-wrap\').remove()">×</button>'
+    : '';
+
+  const offerLine = partner.offer
+    ? '<div class="sci-offer">' + partner.offer + '</div>'
+    : '';
+
+  // Native: dark "Get started" button
+  // Partner: Airbnb-endorsed footer with logo + partner name
+  const footer = partner.native
+    ? '<button class="sci-book-btn" onclick="event.stopPropagation();bookService(\'' + partner.id + '\')">Get started</button>'
+    : '<div class="sci-endorsed">'
+        + '<div class="sci-endorsed-logo">' + AIRBNB_SVG_SM + '</div>'
+        + '<span class="sci-endorsed-text">Airbnb partner · ' + partner.name + '</span>'
+        + '<span class="sci-endorsed-chevron">›</span>'
+      + '</div>';
+
+  const clickHandler = partner.native ? '' : 'onclick="bookService(\'' + partner.id + '\')"';
+
+  // "Recommended by Airbnb" label with red dot
+  const label = '<div class="suggested-label">'
+    + '<span class="airbnb-dot">' + AIRBNB_SVG_SM + '</span>'
+    + 'Recommended by Airbnb'
+    + '</div>';
+
+  return '<div class="sci-wrap">'
+    + label
+    + '<div class="service-card-inline" ' + clickHandler + '>'
+    + dismissBtn
+    + '<div class="sci-inner">'
+    + '<div class="sci-text">'
+    + '<div class="sci-title">' + partner.title + '</div>'
+    + '<div class="sci-subtitle">' + partner.subtitle + '</div>'
+    + offerLine
+    + '</div>'
+    + '<div class="sci-icon">' + partner.icon + '</div>'
+    + '</div>'
+    + footer
+    + '</div>'
+    + '</div>';
+}
+
+// ── TIMELINE ──
+function addToTimeline(partner, label) {
+  const timeline = document.getElementById('timeline');
+
+  const item = document.createElement('div');
+  item.className = 'timeline-item animate-in';
+
+  const day = new Date(); day.setDate(day.getDate() + timelineItems.length + 1);
+  const dayNum = day.getDate();
+  const dayLabel = day.toLocaleDateString('en-US',{weekday:'short'}).toUpperCase();
+
+  item.innerHTML = `
+    <div class="tl-left">
+      <div class="tl-date-label">${dayLabel}</div>
+      <div class="tl-date-num gray">${dayNum}</div>
+      <div class="tl-line" style="visibility:hidden"></div>
+    </div>
+    <div class="tl-card" onclick="bookService('${partner.id}')">
+      <div class="tl-card-img" style="font-size:24px">${partner.icon||'📌'}</div>
+      <div class="tl-card-text">
+        <div class="tl-card-name">${partner.title}</div>
+        <div class="tl-card-sub">${partner.cat}</div>
+        ${label ? `<div class="tl-card-new">${label}</div>` : ''}
+      </div>
+    </div>`;
+
+  timeline.appendChild(item);
+  timelineItems.push(partner);
+
+  // scroll right panel
+  document.querySelector('.right-panel').scrollTop = 99999;
+}
+
+// ── PARTNER DEEP LINKS ──
+const PARTNER_URLS = {
+  doordash:    'https://www.doordash.com',
+  ubereats:    'https://www.ubereats.com',
+  seamless:    'https://www.seamless.com',
+  instacart:   'https://www.instacart.com',
+  freshdirect: 'https://www.freshdirect.com',
+  gorillas:    'https://www.getir.com',
+  zeel:        'https://www.zeel.com',
+  soothe:      'https://www.soothe.com',
+  airbnb_spa:  'https://www.airbnb.com/s/experiences/wellness',
+  classpass:   'https://www.classpass.com',
+  airbnb_chef: 'https://www.airbnb.com/s/experiences/chef',
+  takachef:    'https://www.takeachef.com',
+  yhangry:     'https://www.yhangry.com',
+  uber:        'https://www.uber.com',
+  lyft:        'https://www.lyft.com',
+  blacklane:   'https://www.blacklane.com',
+  citibike:    'https://www.citibikenyc.com',
+  airbnb_exp:  'https://www.airbnb.com/s/experiences',
+  viator:      'https://www.viator.com',
+  getyourguide:'https://www.getyourguide.com',
+  classicboat: 'https://www.sailawayny.com',
+  cooking:     'https://www.airbnb.com/s/experiences/cooking',
+  handy:       'https://www.handy.com',
+  tidy:        'https://www.hellotidy.com',
+  laundry:     'https://www.rinse.com',
+  bloomsy:     'https://www.bloomsybox.com',
+  '1800flowers':'https://www.1800flowers.com',
+};
+
+// ── BOOK (deep-link) ──
+function bookService(id) {
+  const partner = PARTNERS.find(p => p.id === id);
+  if (!partner) return;
+
+  const url = partner.url || PARTNER_URLS[id] || 'https://www.airbnb.com';
+
+  // Chat confirmation
+  addHostMessage('Connecting you with ' + (partner.name||partner.title) + '... Opening their app now. 🔗');
+
+  // Open deep link
+  window.open(url, '_blank', 'noopener');
+
+  // Toast
+  showToast(`Opening ${partner.name} →`);
+
+  // Timeline entry
+  addToTimeline(partner, 'Booked via Airbnb');
+}
+
+function showToast(msg) {
+  let toast = document.getElementById('deeplink-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'deeplink-toast';
+    toast.className = 'deeplink-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
